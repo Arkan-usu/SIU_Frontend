@@ -22,6 +22,7 @@ export default function Navbar({ toggleSidebar }) {
         <NavItem label="Laporan" page="/laporan" />
         <NavItem label="Anggota" page="/anggota" />
         <NavItem label="Kegiatan" page="/kegiatan" />
+        <NavItem label="Kalender" page="/kalender" />
       </div>
 
       <button

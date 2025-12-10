@@ -58,6 +58,7 @@ import Profile from "./pages/Profile";
 import Anggota from "./pages/Anggota";
 import Kegiatan from "./pages/Kegiatan";
 import Laporan from "./pages/Laporan";
+import Kalender from "./pages/Kalender";
 import AdminDashboard from "./pages/AdminPage";
 import NotFound from './pages/NotFound';
 
@@ -97,6 +98,7 @@ function AppContent() {
           <Route path="/laporan" element={<Laporan />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/kalender" element ={<Kalender/>}/>
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/profile" element={<Profile />} />
           
