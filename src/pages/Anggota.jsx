@@ -22,7 +22,10 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
           <h4 className="text-xl font-semibold text-gray-800 mb-2">Harap Login Terlebih Dahulu</h4>
           <p className="text-gray-600 mb-8 leading-relaxed">Anda perlu login untuk mendaftar sebagai anggota UKM.</p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={onLogin} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+            <button onClick={() => {
+              navigate('/login');
+            }}
+             className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
               🚀 Login Sekarang
             </button>
             <button onClick={onClose} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
