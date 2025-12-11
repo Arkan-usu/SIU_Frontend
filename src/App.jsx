@@ -60,6 +60,7 @@ import Kegiatan from "./pages/Kegiatan";
 import Laporan from "./pages/Laporan";
 import AdminDashboard from "./pages/AdminPage";
 import NotFound from './pages/NotFound';
+import Kalender from "./pages/Kalender";
 
 function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -99,6 +100,7 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/kalender" element ={<Kalender/>}/>
           
           {/* ✅ NOW Navigate WORKS! */}
           <Route 

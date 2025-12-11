@@ -55,7 +55,7 @@ function Laporan() {
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="text-center mb-16">
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent mb-4">
+        <h1 className="text-5xl font-bold bg-gradient-to-br from-emerald-300 via-emerald-500 to-emerald-700 bg-clip-text text-transparent mb-4">
           Laporan UKM
         </h1>
         <p className="text-xl text-gray-600">Ringkasan kegiatan dan biaya per UKM</p>
@@ -68,9 +68,9 @@ function Laporan() {
         </div>
       ) : (
         laporanData.map((ukm) => (
-          <div key={ukm.id} className="mb-16">
+          <div key={ukm.id} className="mb-16 ">
             {/* UKM Header */}
-            <div className="flex items-center justify-between mb-8 p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl shadow-2xl">
+            <div className="flex items-center justify-between mb-8 p-6 bg-gradient-to-br from-emerald-300 via-emerald-500 to-emerald-700 text-white rounded-2xl shadow-2xl">
               <div>
                 <h2 className="text-3xl font-bold">{ukm.nama}</h2>
                 <p className="opacity-90">{ukm.laporan?.length || 0} Laporan Tersedia</p>
@@ -93,7 +93,7 @@ function Laporan() {
                 <div className="overflow-x-auto">
                   <table className="w-full table-auto">
                     <thead>
-                      <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                      <tr className="bg-gray-800 text-white">
                         <th className="px-6 py-4 text-left font-semibold rounded-tl-2xl">Kegiatan</th>
                         <th className="px-6 py-4 text-left font-semibold">Peserta</th>
                         <th className="px-6 py-4 text-left font-semibold rounded-tr-2xl">Biaya</th>
