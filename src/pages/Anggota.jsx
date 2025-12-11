@@ -1,18 +1,25 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ IMPORT NAVIGATE
 import axios from 'axios';
 import { UserContext } from '../App';
 import toast from 'react-hot-toast';
 
-// ✅ MODAL COMPONENT (SAMA)
-const LoginModal = ({ isOpen, onClose, onLogin }) => {
+// ✅ MODAL COMPONENT - FIX NAVIGATE
+const LoginModal = ({ isOpen, onClose, navigate }) => { // ✅ PASS NAVIGATE AS PROP
   if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform animate-in slide-in-from-top-4 duration-300 max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 rounded-t-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
           <div className="flex items-center justify-between">
             <h3 className="text-2xl font-bold">🔐 Login Diperlukan</h3>
-            <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full p-2 transition-all hover:rotate-90">✕</button>
+            <button 
+              onClick={onClose}
+              className="text-white hover:bg-white/20 rounded-full p-2 transition-all hover:rotate-90"
+            >
+              ✕
+            </button>
           </div>
         </div>
         <div className="p-8 text-center">
@@ -22,13 +29,16 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
           <h4 className="text-xl font-semibold text-gray-800 mb-2">Harap Login Terlebih Dahulu</h4>
           <p className="text-gray-600 mb-8 leading-relaxed">Anda perlu login untuk mendaftar sebagai anggota UKM.</p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={() => {
-              navigate('/login');
-            }}
-             className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+            <button
+              onClick={() => navigate('/login')} // ✅ USE PROP NAVIGATE
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+            >
               🚀 Login Sekarang
             </button>
-            <button onClick={onClose} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+            >
               Tutup
             </button>
           </div>
@@ -42,10 +52,11 @@ function Anggota({ setAnggotaTerdaftar }) {
   const [ukmList, setUkmList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userRegistrations, setUserRegistrations] = useState([]); // ✅ NOW HAS STATUS
+  const [userRegistrations, setUserRegistrations] = useState([]);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  const { token, user } = useContext(UserContext); // ✅ ADD USER
+  const { token, user } = useContext(UserContext);
+  const navigate = useNavigate(); // ✅ HOOK DI COMPONENT UTAMA
 
   // ✅ FETCH DATA + REGISTRATIONS WITH STATUS
   useEffect(() => {
@@ -61,18 +72,19 @@ function Anggota({ setAnggotaTerdaftar }) {
         // ✅ Fetch USER REGISTRATIONS + STATUS
         if (token && user?.id) {
           try {
-            const regResponse = await axios.get(`/pendaftar/user/${user.id}`, { // ✅ USER-SPECIFIC API
+            const regResponse = await axios.get(`/pendaftar/user/${user.id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
             setUserRegistrations(regResponse.data || []);
           } catch (regErr) {
-            console.log('No registrations yet');
+            console.log('No registrations yet:', regErr.response?.status);
             setUserRegistrations([]);
           }
         } else {
           setUserRegistrations([]);
         }
       } catch (err) {
+        console.error('Fetch error:', err);
         setError('Gagal memuat data UKM');
       } finally {
         setLoading(false);
@@ -80,7 +92,7 @@ function Anggota({ setAnggotaTerdaftar }) {
     };
 
     fetchData();
-  }, [token, user?.id]); // ✅ ADD user.id DEPENDENCY
+  }, [token, user?.id]);
 
   // ✅ CHECK REGISTRATION STATUS (PERSISTEN!)
   const getRegistrationStatus = (ukmId) => {
@@ -97,7 +109,7 @@ function Anggota({ setAnggotaTerdaftar }) {
     }
   };
 
-  // *** LOGIN CHECK + MODAL TRIGGER ***
+  // ✅ HANDLE DAFTAR
   const handleDaftar = async (ukmId) => {
     if (!token) {
       setShowLoginModal(true);
@@ -106,7 +118,11 @@ function Anggota({ setAnggotaTerdaftar }) {
 
     const status = getRegistrationStatus(ukmId);
     if (status !== 'not_registered') {
-      toast.error(`Status Anda: ${status === 'pending' ? '⏳ Menunggu konfirmasi' : status === 'accepted' ? '✅ Diterima' : '❌ Ditolak'}`, { id: 'daftar' });
+      toast.error(
+        `Status Anda: ${status === 'pending' ? '⏳ Menunggu konfirmasi' : 
+                       status === 'accepted' ? '✅ Diterima' : '❌ Ditolak'}`, 
+        { id: 'daftar' }
+      );
       return;
     }
 
@@ -120,19 +136,18 @@ function Anggota({ setAnggotaTerdaftar }) {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // ✅ IMMEDIATELY UPDATE LOCAL STATE
-      setUserRegistrations(prev => [...prev, { ...response.data.registration, status: 'pending' }]);
+      // ✅ UPDATE LOCAL STATE
+      setUserRegistrations(prev => [...prev, { 
+        ...response.data.registration, 
+        status: 'pending' 
+      }]);
       toast.success('✅ Berhasil daftar! Menunggu konfirmasi admin', { id: 'daftar' });
       setAnggotaTerdaftar?.(true);
       
     } catch (err) {
+      console.error('Daftar error:', err.response?.data);
       toast.error(err.response?.data?.error || 'Gagal mendaftar!', { id: 'daftar' });
     }
-  };
-
-  const handleLoginClick = () => {
-    setShowLoginModal(false);
-    window.location.href = '/login';
   };
 
   if (loading) {
@@ -148,7 +163,10 @@ function Anggota({ setAnggotaTerdaftar }) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <p className="text-red-600 mb-4">{error}</p>
-        <button onClick={() => window.location.reload()} className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
+        >
           Coba Lagi
         </button>
       </div>
@@ -157,10 +175,11 @@ function Anggota({ setAnggotaTerdaftar }) {
 
   return (
     <>
+      {/* ✅ PASS NAVIGATE TO MODAL */}
       <LoginModal 
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onLogin={handleLoginClick}
+        navigate={navigate} // ✅ PROP DILEMPLEN
       />
 
       <div className="container mx-auto px-4 py-16">
@@ -174,7 +193,7 @@ function Anggota({ setAnggotaTerdaftar }) {
           </div>
         ) : (
           ukmList.map((ukm) => {
-            const status = getRegistrationStatus(ukm.id); // ✅ PERSISTEN STATUS
+            const status = getRegistrationStatus(ukm.id);
 
             return (
               <div key={ukm.id} className="mb-12">
@@ -183,7 +202,7 @@ function Anggota({ setAnggotaTerdaftar }) {
                     {ukm.nama}
                   </h2>
                   <div className="flex items-center gap-3">
-                    {/* ✅ STATUS BADGE - PERSISTEN */}
+                    {/* STATUS BADGE */}
                     {status !== 'not_registered' && (
                       <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-md ${
                         status === 'accepted' ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-400' :
@@ -195,7 +214,7 @@ function Anggota({ setAnggotaTerdaftar }) {
                       </span>
                     )}
                     
-                    {/* ✅ BUTTON BASED ON REAL STATUS */}
+                    {/* BUTTON */}
                     <button
                       onClick={() => handleDaftar(ukm.id)}
                       disabled={status !== 'not_registered'}
@@ -221,7 +240,7 @@ function Anggota({ setAnggotaTerdaftar }) {
                   </div>
                 </div>
 
-                {/* ANGGOTA LIST - SAMA */}
+                {/* ANGGOTA LIST */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {ukm.anggota?.length > 0 ? (
                     ukm.anggota.map((person, index) => (
