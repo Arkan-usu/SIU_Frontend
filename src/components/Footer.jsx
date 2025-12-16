@@ -1,3 +1,5 @@
+import { NavLink } from "react-router-dom"; // ✅ IMPORT INI
+
 function Footer() {
   return (
     <footer className="bg-gray-800 text-white py-12">
@@ -11,25 +13,77 @@ function Footer() {
             </p>
           </div>
 
-          {/* Section Quick Links */}
+          {/* Section Quick Links - ✅ NAVLINK */}
           <div>
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="/" className="text-gray-300 hover:text-emerald-400 transition">Home</a></li>
-              <li><a href="/laporan" className="text-gray-300 hover:text-emerald-400 transition">Laporan</a></li>
-              <li><a href="/anggota" className="text-gray-300 hover:text-emerald-400 transition">Anggota</a></li>
-              <li><a href="/kegiatan" className="text-gray-300 hover:text-emerald-400 transition">Kegiatan</a></li>
+              <li>
+                <NavLink 
+                  to="/" 
+                  className="text-gray-300 hover:text-emerald-400 transition block py-1"
+                  style={({ isActive }) => ({
+                    color: isActive ? '#10b981' : '#d1d5db'
+                  })}
+                >
+                  Home
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/laporan" 
+                  className="text-gray-300 hover:text-emerald-400 transition block py-1"
+                  style={({ isActive }) => ({
+                    color: isActive ? '#10b981' : '#d1d5db'
+                  })}
+                >
+                  Laporan
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/anggota" 
+                  className="text-gray-300 hover:text-emerald-400 transition block py-1"
+                  style={({ isActive }) => ({
+                    color: isActive ? '#10b981' : '#d1d5db'
+                  })}
+                >
+                  Anggota
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/kegiatan" 
+                  className="text-gray-300 hover:text-emerald-400 transition block py-1"
+                  style={({ isActive }) => ({
+                    color: isActive ? '#10b981' : '#d1d5db'
+                  })}
+                >
+                  Kegiatan
+                </NavLink>
+              </li>
             </ul>
           </div>
 
-          {/* Section Follow Us (Social Media) */}
+          {/* Section Follow Us - ✅ EXTERNAL LINKS */}
           <div>
             <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-emerald-400 transition text-2xl">📘</a>  {/* Facebook */}
-              <a href="#" className="text-gray-300 hover:text-emerald-400 transition text-2xl">🐦</a>  {/* Twitter */}
-              <a href="#" className="text-gray-300 hover:text-emerald-400 transition text-2xl">📷</a>  {/* Instagram */}
-              <a href="#" className="text-gray-300 hover:text-emerald-400 transition text-2xl">💼</a>  {/* LinkedIn */}
+              <a href="https://facebook.com/siuukm" target="_blank" rel="noopener noreferrer" 
+                 className="text-gray-300 hover:text-emerald-400 transition text-2xl" title="Facebook">
+                📘
+              </a>
+              <a href="https://twitter.com/siuukm" target="_blank" rel="noopener noreferrer" 
+                 className="text-gray-300 hover:text-emerald-400 transition text-2xl" title="Twitter">
+                🐦
+              </a>
+              <a href="https://instagram.com/siuukm" target="_blank" rel="noopener noreferrer" 
+                 className="text-gray-300 hover:text-emerald-400 transition text-2xl" title="Instagram">
+                📷
+              </a>
+              <a href="https://linkedin.com/company/siuukm" target="_blank" rel="noopener noreferrer" 
+                 className="text-gray-300 hover:text-emerald-400 transition text-2xl" title="LinkedIn">
+                💼
+              </a>
             </div>
           </div>
 

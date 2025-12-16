@@ -5,15 +5,16 @@ import {
   Route, 
   useLocation, 
   useNavigate,
-  Navigate   // ✅ TAMBAH INI!
+  Navigate 
 } from "react-router-dom";
 import axios from 'axios';
 
-// ✅ AXIOS CONFIG
-axios.defaults.baseURL = 'https://siu-backend-theta.vercel.app/';
+// ✅ AXIOS CONFIG - VERCEL PRODUCTION
+axios.defaults.baseURL = import.meta.env.MODE === 'production' 
+  ? 'https://siu-backend-theta.vercel.app/'
+  : 'http://localhost:3001/';
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 
-// ✅ UserContext
 export const UserContext = createContext();
 
 function UserProvider({ children }) {
@@ -45,10 +46,13 @@ function UserProvider({ children }) {
   );
 }
 
-// Components import
+// ✅ COMPONENTS
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
+import AuthGuard from "./components/AuthGuard"; // ✅ CRITICAL
+
+// ✅ PAGES
 import Home from "./pages/Home";
 import DetailUKM from './pages/DetailUKM';
 import Login from "./pages/Login";
@@ -66,7 +70,7 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { token, role, loading } = useContext(UserContext);  // ✅ WORKS NOW
+  const { token, role, loading } = useContext(UserContext);
 
   const toggleSidebar = () => setIsSidebarOpen(v => !v);
   const fullScreen = ["/login", "/register", "/forgot-password"].includes(location.pathname);
@@ -100,16 +104,16 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/kalender" element ={<Kalender/>}/>
+          <Route path="/kalender" element={<Kalender />} />
           
-          {/* ✅ NOW Navigate WORKS! */}
+          {/* ✅ AUTHGUARD - CLEANER */}
           <Route 
             path="/admin" 
             element={
-              role === 'admin' && token 
-                ? <AdminDashboard/> 
-                : <Navigate to="/login" replace />
-            }
+              <AuthGuard>
+                <AdminDashboard />
+              </AuthGuard>
+            } 
           />
           <Route path="*" element={<NotFound />} />
         </Routes>
