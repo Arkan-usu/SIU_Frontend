@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -6,6 +7,7 @@ function Laporan() {
   const [laporanData, setLaporanData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchLaporan = async () => {
@@ -72,7 +74,12 @@ function Laporan() {
             {/* UKM Header */}
             <div className="flex items-center justify-between mb-8 p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl shadow-2xl">
               <div>
-                <h2 className="text-3xl font-bold">{ukm.nama}</h2>
+                <h2
+                  onClick={() => navigate(`/ukm/${ukm.id}`)}
+                  className="text-2xl font-semibold text-indigo-600 cursor-pointer hover:underline hover:text-indigo-800 transition-colors"
+                  title="Lihat detail UKM">
+                  {ukm.nama}
+                </h2>
                 <p className="opacity-90">{ukm.laporan?.length || 0} Laporan Tersedia</p>
               </div>
               {ukm.laporan && ukm.laporan.length > 0 && (

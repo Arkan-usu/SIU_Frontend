@@ -200,7 +200,12 @@ function Kegiatan({ setKegiatanTerdaftar }) {
         ) : (
           ukmList.map((ukm) => (
             <div key={ukm.id} className="mb-12">
-              <h2 className="text-3xl font-bold text-indigo-600 mb-6 text-center">{ukm.nama}</h2>
+              <h2
+                onClick={() => navigate(`/ukm/${ukm.id}`)}
+                className="text-2xl font-semibold text-indigo-600 cursor-pointer hover:underline hover:text-indigo-800 transition-colors"
+                title="Lihat detail UKM">
+                {ukm.nama}
+              </h2>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {ukm.kegiatan?.map((keg) => {

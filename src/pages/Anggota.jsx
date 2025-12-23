@@ -1,53 +1,36 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from '../App';
 import toast from 'react-hot-toast';
 
-// ✅ MODAL COMPONENT
+
+/* ================= LOGIN MODAL ================= */
 const LoginModal = ({ isOpen, onClose, onLogin }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform animate-in slide-in-from-top-4 duration-300 max-h-[90vh] overflow-y-auto">
-        {/* HEADER */}
-        <div className="p-6 border-b border-gray-200 rounded-t-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold">🔐 Login Diperlukan</h3>
-            <button 
-              onClick={onClose}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition-all hover:rotate-90"
-            >
-              ✕
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
+        <div className="p-6 bg-emerald-600 text-white rounded-t-2xl flex justify-between">
+          <h3 className="font-bold text-xl">🔐 Login Diperlukan</h3>
+          <button onClick={onClose}>✕</button>
         </div>
 
-        {/* BODY */}
         <div className="p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-400 to-red-500 rounded-2xl flex items-center justify-center shadow-xl">
-            <span className="text-3xl">🚫</span>
-          </div>
-          
-          <h4 className="text-xl font-semibold text-gray-800 mb-2">
-            Harap Login Terlebih Dahulu
-          </h4>
-          
-          <p className="text-gray-600 mb-8 leading-relaxed">
-            Anda perlu login untuk mendaftar sebagai anggota UKM. 
-            Akun diperlukan untuk menyimpan data pendaftaran Anda.
+          <p className="mb-6 text-gray-600">
+            Login diperlukan untuk mendaftar anggota UKM
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex gap-3">
             <button
               onClick={onLogin}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="flex-1 bg-emerald-600 text-white py-3 rounded-xl"
             >
-              🚀 Login Sekarang
+              Login
             </button>
             <button
               onClick={onClose}
-              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="flex-1 bg-gray-200 py-3 rounded-xl"
             >
               Tutup
             </button>
@@ -58,89 +41,110 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
   );
 };
 
+/* ================= TOKEN ROLE ================= */
+const getRoleFromToken = (token) => {
+  try {
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role;
+  } catch {
+    return null;
+  }
+};
+
+/* ================= MAIN ================= */
 function Anggota({ setAnggotaTerdaftar }) {
+  const { token } = useContext(UserContext);
+  const navigate = useNavigate();
   const [ukmList, setUkmList] = useState([]);
+  const [userRegistrations, setUserRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userRegistrations, setUserRegistrations] = useState([]);
-  const [showLoginModal, setShowLoginModal] = useState(false); // ✅ MODAL STATE
-  
-  const { token } = useContext(UserContext);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // *** SAME FETCH LOGIC ***
+  const role = getRoleFromToken(token);
+  const isAdmin = role === 'admin';
+
+  /* ================= FETCH ================= */
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const ukmResponse = await axios.get('/ukm');
-        setUkmList(ukmResponse.data);
-        
-        if (token) {
-          try {
-            const regResponse = await axios.get('/pendaftar', {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            setUserRegistrations(regResponse.data);
-          } catch (regErr) {
-            setUserRegistrations([]);
-          }
-        }
-      } catch (err) {
+
+        const ukmRes = await axios.get('/ukm');
+        setUkmList(ukmRes.data);
+      } catch {
         setError('Gagal memuat data UKM');
-      } finally {
         setLoading(false);
+        return;
       }
+
+      if (token) {
+        try {
+          const regRes = await axios.get('/pendaftar', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setUserRegistrations(regRes.data);
+        } catch {
+          setUserRegistrations([]);
+        }
+      }
+
+      setLoading(false);
     };
 
     fetchData();
   }, [token]);
 
-  // *** LOGIN CHECK + MODAL TRIGGER ***
+  /* ================= ACTION ================= */
   const handleDaftar = async (ukmId) => {
     if (!token) {
-      setShowLoginModal(true); // ✅ SHOW POPUP
+      setShowLoginModal(true);
       return;
     }
 
-    // *** SAME DAFTAR LOGIC ***
     try {
       toast.loading('Mendaftar...', { id: 'daftar' });
-      
-      const response = await axios.post('/pendaftar', {
-        ukm_id: ukmId,
-        type: 'anggota'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
 
-      setUserRegistrations(prev => [...prev, response.data.registration]);
-      toast.success('✅ Berhasil daftar! Menunggu konfirmasi admin', { id: 'daftar' });
+      const res = await axios.post(
+        '/pendaftar',
+        { ukm_id: ukmId, type: 'anggota' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setUserRegistrations((prev) => [...prev, res.data.registration]);
+      toast.success('Menunggu konfirmasi admin', { id: 'daftar' });
       setAnggotaTerdaftar?.(true);
-      
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Gagal mendaftar!', { id: 'daftar' });
+      toast.error(err.response?.data?.error || 'Gagal mendaftar', {
+        id: 'daftar',
+      });
     }
   };
 
-  // *** REDIRECT TO LOGIN ***
-  const handleLoginClick = () => {
-    setShowLoginModal(false);
-    window.location.href = '/login'; // Force redirect
-  };
+  const handleBatal = (ukmId) => {
+    if (!window.confirm('Batalkan pendaftaran ini?')) return;
 
-  const isUserRegistered = (ukmId) => {
-    return userRegistrations.some(reg => 
-      reg.ukm_id === ukmId && reg.type === 'anggota'
+    setUserRegistrations((prev) =>
+      prev.filter(
+        (r) => !(r.ukm_id === ukmId && r.type === 'anggota')
+      )
     );
+
+    toast.success('Pendaftaran dibatalkan');
   };
 
-  // Loading & Error states (SAMA)
+  const isUserRegistered = (ukmId) =>
+    userRegistrations.some(
+      (r) => r.ukm_id === ukmId && r.type === 'anggota'
+    );
+
+  /* ================= LOADING (TETAP) ================= */
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
         <p className="text-gray-600">Memuat daftar UKM...</p>
       </div>
     );
@@ -150,9 +154,9 @@ function Anggota({ setAnggotaTerdaftar }) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <p className="text-red-600 mb-4">{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-indigo-600 text-white px-6 py-2 rounded-lg"
         >
           Coba Lagi
         </button>
@@ -160,86 +164,106 @@ function Anggota({ setAnggotaTerdaftar }) {
     );
   }
 
+  /* ================= RENDER ================= */
   return (
     <>
-      {/* ✅ LOGIN MODAL */}
-      <LoginModal 
+      <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onLogin={handleLoginClick}
+        onLogin={() => (window.location.href = '/login')}
       />
 
       <div className="container mx-auto px-4 py-16">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-12">
+        <h1 className="text-4xl font-bold text-center mb-12">
           Daftar Anggota UKM
         </h1>
 
-        {ukmList.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">Belum ada UKM tersedia.</p>
-          </div>
-        ) : (
-          ukmList.map((ukm) => {
-            const sudahTerdaftar = isUserRegistered(ukm.id);
+        {ukmList.map((ukm) => {
+          const sudahTerdaftar = isUserRegistered(ukm.id);
 
-            return (
-              <div key={ukm.id} className="mb-12">
-                <div className="flex justify-between items-center mb-4 p-6 bg-indigo-50 rounded-lg">
-                  <h2 className="text-2xl font-semibold text-indigo-600">
-                    {ukm.nama}
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    {sudahTerdaftar && (
-                      <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-                        ⏳ Pending
-                      </span>
-                    )}
-                    
+          return (
+            <div key={ukm.id} className="mb-16">
+              {/* HEADER UKM */}
+              <div className="flex justify-between items-center bg-indigo-50 p-6 rounded-lg mb-6">
+                <h2
+                  onClick={() => navigate(`/ukm/${ukm.id}`)}
+                  className="text-2xl font-semibold text-indigo-600 cursor-pointer hover:underline hover:text-indigo-800 transition-colors"
+                  title="Lihat detail UKM">
+                  {ukm.nama}
+                </h2>
+
+                <div className="flex gap-3">
+                  {sudahTerdaftar && (
                     <button
-                      onClick={() => handleDaftar(ukm.id)}
-                      disabled={sudahTerdaftar}
-                      className={`px-6 py-3 rounded-lg text-sm font-semibold shadow-md transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5
-                        ${sudahTerdaftar
-                          ? 'bg-gray-400 cursor-not-allowed text-gray-600'
-                          : !token 
-                            ? 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer shadow-orange-500/50' 
-                            : 'bg-green-700 hover:bg-green-800 text-white shadow-green-500/50'
+                      onClick={() => handleBatal(ukm.id)}
+                      disabled={isAdmin}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold
+                        ${
+                          isAdmin
+                            ? 'bg-gray-300 cursor-not-allowed'
+                            : 'bg-red-600 text-white'
                         }`}
-                      title={!token ? "Login diperlukan untuk mendaftar" : ""}
                     >
-                      {sudahTerdaftar ? '⏳ Menunggu Konfirmasi' : 
-                       !token ? '🔐 Login Dulu' : '📝 Daftar Anggota'}
+                      ❌ Batal Daftar
                     </button>
-                  </div>
-                </div>
-
-                {/* ANGGOTA LIST - SAMA */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {ukm.anggota?.length > 0 ? (
-                    ukm.anggota.map((person, index) => (
-                      <div key={`${ukm.id}-${index}`} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-all duration-200 hover:scale-105 text-center border-2 border-gray-100">
-                        <div className="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-lg">
-                            {person.nama.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2 truncate">{person.nama}</h3>
-                        <p className="text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full inline-block text-sm">
-                          {person.jabatan || 'Anggota'}
-                        </p>
-                        {person.nim && <p className="text-sm text-gray-500 mt-1">{person.nim}</p>}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="col-span-full text-center text-gray-500 py-8">
-                      Belum ada anggota terdaftar
-                    </p>
                   )}
+
+                  <button
+                    onClick={() => handleDaftar(ukm.id)}
+                    disabled={sudahTerdaftar || isAdmin}
+                    className={`px-6 py-3 rounded-lg text-sm font-semibold
+                      ${
+                        sudahTerdaftar || isAdmin
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : !token
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-green-700 text-white'
+                      }`}
+                  >
+                    {isAdmin
+                      ? 'Admin'
+                      : sudahTerdaftar
+                      ? '⏳ Pending'
+                      : !token
+                      ? '🔐 Login Dulu'
+                      : '📝 Daftar Anggota'}
+                  </button>
                 </div>
               </div>
-            );
-          })
-        )}
+
+              {/* ✅ DAFTAR ANGGOTA (INI YANG HILANG TADI) */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {ukm.anggota?.length > 0 ? (
+                  ukm.anggota.map((person, i) => (
+                    <div
+                      key={i}
+                      className="bg-white p-6 rounded-lg shadow-md text-center"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-4 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                        {person.nama[0]}
+                      </div>
+                      <h3 className="font-semibold text-lg">
+                        {person.nama}
+                      </h3>
+                      <p className="text-indigo-600 text-sm">
+                        {person.jabatan || 'Anggota'}
+                      </p>
+                      {person.nim && (
+                        <p className="text-gray-500 text-sm">
+                          {person.nim}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="col-span-full text-center text-gray-500">
+                    Belum ada anggota terdaftar
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </>
   );

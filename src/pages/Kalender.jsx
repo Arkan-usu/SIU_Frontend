@@ -1,42 +1,60 @@
-import React, { useState, useEffect } from "react";
-import axios from 'axios';
+import React, { useState, useEffect, useContext } from "react";
+import axios from "axios";
+import { UserContext } from "../App";
+import { useNavigate } from "react-router-dom";
+import toast, { Toaster } from "react-hot-toast";
 
 const days = ["Ming", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 function Kalender() {
   const today = new Date();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  today.setHours(0, 0, 0, 0);
 
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [kegiatan, setKegiatan] = useState([]);
   const [kegiatanData, setKegiatanData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✔ FETCH KEGIATAN DARI BACKEND
+  const { token, loading: authLoading } = useContext(UserContext);
+  const navigate = useNavigate();
+
+  // 🔒 CEK LOGIN
   useEffect(() => {
+    if (!authLoading && !token) {
+      toast.error("Login diperlukan untuk melihat kalender!");
+      navigate("/login");
+    }
+  }, [token, authLoading, navigate]);
+
+  // 📡 FETCH KEGIATAN
+  useEffect(() => {
+    if (!token) return;
+
     const fetchKegiatan = async () => {
       try {
-        const res = await axios.get("https://siu-backend-theta.vercel.app/ukm");
+        const res = await axios.get("/ukm", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-        // Gabungkan kegiatan dari semua UKM
-        const allEvents = res.data.flatMap((ukm) =>
+        const events = res.data.flatMap((ukm) =>
           ukm.kegiatan.map((k) => ({
             ...k,
             ukm_nama: ukm.nama,
-            tanggal: k.tanggal?.split("T")[0] // ✔ FIX format tanggal
+            tanggal: k.tanggal?.split("T")[0]
           }))
         );
 
-        setKegiatanData(allEvents);
-      } catch (err) {
-        console.error("Gagal fetch kegiatan:", err);
+        setKegiatanData(events);
+      } catch {
+        toast.error("Gagal memuat kegiatan");
       } finally {
         setLoading(false);
       }
     };
 
     fetchKegiatan();
-  }, []);
+  }, [token]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -48,172 +66,148 @@ function Kalender() {
   for (let i = 0; i < firstDay; i++) dates.push(null);
   for (let i = 1; i <= totalDays; i++) dates.push(i);
 
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+  const isPastDate = (date) => {
+    if (!date) return false;
+    const check = new Date(year, month, date);
+    check.setHours(0, 0, 0, 0);
+    return check < today;
+  };
 
-  // ✔ KLIK TANGGAL → TAMPILKAN KEGIATAN HARI ITU
   const handleDateClick = (day) => {
     if (!day) return;
 
-    const m = (month + 1).toString().padStart(2, "0");
-    const d = day.toString().padStart(2, "0");
-    const fullDate = `${year}-${m}-${d}`;
+    const fullDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const events = kegiatanData.filter((k) => k.tanggal === fullDate);
 
     setSelectedDate(fullDate);
-
-    // Filter kegiatan pada hari itu
-    const eventToday = kegiatanData.filter((k) => k.tanggal === fullDate);
-
-    setKegiatan(eventToday);
+    setKegiatan(events);
   };
 
-  const closePanel = () => {
-    setSelectedDate(null);
-    setKegiatan([]);
-  };
-
-  if (loading)
+  if (authLoading || loading) {
     return (
-      <div className="w-full text-center py-10 text-xl font-semibold text-gray-600">
-        Memuat Kalender...
+      <div className="min-h-screen flex items-center justify-center text-xl font-semibold text-gray-600">
+        <div className="animate-spin h-10 w-10 border-b-2 border-emerald-600 rounded-full mr-4"></div>
+        Memuat kalender...
       </div>
     );
+  }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50 flex justify-center items-start py-12 px-4">
+    <>
+      <Toaster />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50 flex justify-center py-12 px-4">
 
-      {/* KONTEN KALENDER */}
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-8 border border-emerald-100">
+        {/* 📅 KALENDER */}
+        <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-8 border border-emerald-100">
+          <div className="flex justify-between items-center mb-8">
+            <button
+              onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-xl shadow hover:scale-105 transition"
+            >
+              ←
+            </button>
 
-        <div className="flex justify-between items-center mb-8">
-          <button
-            onClick={prevMonth}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-xl shadow"
-          >
-            ←
-          </button>
-
-          <h2 className="text-3xl font-serif italic text-emerald-600">
-            {currentDate.toLocaleString("id-ID", { month: "long", year: "numeric" })}
-          </h2>
-
-          <button
-            onClick={nextMonth}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-xl shadow"
-          >
-            →
-          </button>
-        </div>
-
-        <div className="grid grid-cols-7 text-center font-semibold text-gray-700 mb-4">
-          {days.map((d) => (
-            <div key={d} className="py-2 text-sm">{d}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-3">
-          {dates.map((date, i) => {
-            const isToday =
-              date &&
-              date === today.getDate() &&
-              month === today.getMonth() &&
-              year === today.getFullYear();
-
-            // ✔ FIX: cek kegiatan (format sudah sama)
-            const fullDate =
-              date &&
-              `${year}-${String(month + 1).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
-
-            const hasEvent = kegiatanData.some((k) => k.tanggal === fullDate);
-
-            return (
-              <div
-                key={i}
-                onClick={() => handleDateClick(date)}
-                className={`relative h-20 flex items-center justify-center rounded-xl border cursor-pointer transition
-                  ${
-                    date
-                      ? isToday
-                        ? "bg-emerald-600 text-white font-bold shadow-md"
-                        : "bg-gray-50 hover:bg-emerald-100 border-emerald-200"
-                      : "bg-transparent border-none cursor-default"
-                  }
-                `}
-              >
-                {date || ""}
-
-                {/* ✔ INDICATOR DOT */}
-                {hasEvent && (
-                  <span className="absolute bottom-2 h-2 w-2 rounded-full bg-red-600 shadow-md"></span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* PANEL KEGIATAN */}
-      {selectedDate && (
-        <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-2xl border-l border-emerald-200 z-50 animate-slideLeft">
-          <div className="p-5 border-b bg-emerald-600 text-white flex justify-between items-center">
-            <h2 className="text-xl font-bold">
-              Kegiatan<br />
-              <span className="text-sm opacity-90">{selectedDate}</span>
+            <h2 className="text-3xl font-bold text-emerald-700">
+              {currentDate.toLocaleString("id-ID", { month: "long", year: "numeric" })}
             </h2>
 
             <button
-              onClick={closePanel}
-              className="text-white text-xl hover:scale-110 transition"
+              onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-xl shadow hover:scale-105 transition"
             >
-              ✕
+              →
             </button>
           </div>
 
-          <div className="p-5 overflow-y-auto h-full">
-            {kegiatan.length === 0 ? (
-              <p className="text-gray-500 italic">Tidak ada kegiatan.</p>
-            ) : (
-              <ul className="space-y-4">
-                {kegiatan.map((k, idx) => (
-                  <li
-                    key={idx}
-                    className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg shadow-sm"
-                  >
-                    <p className="font-bold text-emerald-700">{k.nama}</p>
-                    <p className="text-sm text-gray-600 italic">UKM: {k.ukm_nama}</p>
+          <div className="grid grid-cols-7 text-center font-semibold text-gray-700 mb-4">
+            {days.map((d) => <div key={d}>{d}</div>)}
+          </div>
 
-                    {k.deskripsi && (
-                      <p className="text-sm mt-1">{k.deskripsi}</p>
-                    )}
+          <div className="grid grid-cols-7 gap-3">
+            {dates.map((date, i) => {
+              const fullDate =
+                date &&
+                `${year}-${String(month + 1).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
 
-                    {k.link_wa && (
-                      <a
-                        href={k.link_wa}
-                        target="_blank"
-                        className="block text-blue-600 underline mt-1"
-                      >
-                        Join WA
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+              const hasEvent = kegiatanData.some((k) => k.tanggal === fullDate);
+              const isPast = isPastDate(date);
+              const isToday =
+                date &&
+                date === today.getDate() &&
+                month === today.getMonth() &&
+                year === today.getFullYear();
+
+              return (
+                <div
+                  key={i}
+                  onClick={() => {
+                    if (!date) return;
+                    if (isPast && !hasEvent) return;
+                    handleDateClick(date);
+                  }}
+                  className={`relative h-20 flex items-center justify-center rounded-2xl text-lg font-semibold transition-all
+                    ${
+                      !date
+                        ? "bg-transparent"
+                        : isPast && !hasEvent
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : isPast && hasEvent
+                        ? "bg-blue-200 text-blue-800 hover:bg-blue-300 cursor-pointer"
+                        : isToday
+                        ? "bg-emerald-600 text-white shadow-xl scale-105"
+                        : hasEvent
+                        ? "bg-orange-100 hover:bg-orange-200 cursor-pointer"
+                        : "bg-gray-50 hover:bg-emerald-100 cursor-pointer"
+                    }
+                  `}
+                >
+                  {date}
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
 
-      {/* ANIMASI PANEL */}
-      <style>{`
-        @keyframes slideLeft {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        .animate-slideLeft {
-          animation: slideLeft 0.3s ease-out;
-        }
-      `}</style>
-    </div>
+        {/* 📌 PANEL KEGIATAN */}
+        {selectedDate && (
+          <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 animate-slide">
+            <div className="p-5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white flex justify-between items-center">
+              <h3 className="font-bold text-lg">{selectedDate}</h3>
+              <button onClick={() => setSelectedDate(null)}>✕</button>
+            </div>
+
+            <div className="p-5 overflow-y-auto h-full">
+              {kegiatan.length === 0 ? (
+                <p className="text-center text-gray-500 italic">Tidak ada kegiatan</p>
+              ) : (
+                <ul className="space-y-4">
+                  {kegiatan.map((k, i) => (
+                    <li
+                      key={i}
+                      className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 shadow"
+                    >
+                      <p className="font-bold text-emerald-800">{k.nama}</p>
+                      <p className="text-sm italic text-gray-600">UKM: {k.ukm_nama}</p>
+                      {k.deskripsi && <p className="text-sm mt-2">{k.deskripsi}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        <style>{`
+          .animate-slide {
+            animation: slideIn 0.3s ease-out;
+          }
+          @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+          }
+        `}</style>
+      </div>
+    </>
   );
 }
 
