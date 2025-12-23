@@ -37,7 +37,7 @@ export default function Sidebar({ isOpen, onClose, navigate, onLogout }) {
         Menu
       </h3>
 
-      {/* MENU NAVBAR — HANYA MOBILE */}
+      {/* MENU NAVBAR — HANYA MUNCUL DI SIDEBAR SAAT HP */}
       <div className="md:hidden">
         <MenuItem label="Home" page="/" />
         <MenuItem label="Laporan" page="/laporan" />
