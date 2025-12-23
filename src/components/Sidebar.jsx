@@ -4,7 +4,7 @@ import { UserContext } from "../App";
 
 export default function Sidebar({ isOpen, onClose, navigate, onLogout }) {
   const location = useLocation();
-  const { role } = useContext(UserContext); // ⬅ CEK ROLE USER
+  const { role } = useContext(UserContext);
 
   const MenuItem = ({ label, page }) => (
     <button
@@ -24,22 +24,38 @@ export default function Sidebar({ isOpen, onClose, navigate, onLogout }) {
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full w-64 bg-gradient-to-br from-emerald-300 via-emerald-500 to-emerald-700 text-white p-6 shadow-xl z-40
-      transition-transform duration-300 flex flex-col
+      className={`fixed top-0 right-0 h-full w-64
+      bg-gradient-to-br from-emerald-300 via-emerald-500 to-emerald-700
+      p-6 shadow-xl z-40 transition-transform duration-300 flex flex-col
+
+      overflow-y-auto md:overflow-visible overscroll-contain
+
       ${isOpen ? "translate-x-0" : "translate-x-full"}`}
     >
-      <h3 className="text-center text-lg font-bold mb-6">Menu</h3>
+      {/* HEADER */}
+      <h3 className="sticky top-0 bg-emerald-600 text-center text-lg font-bold mb-6 py-2 z-10">
+        Menu
+      </h3>
 
+      {/* MENU NAVBAR — HANYA MOBILE */}
+      <div className="md:hidden">
+        <MenuItem label="Home" page="/" />
+        <MenuItem label="Laporan" page="/laporan" />
+        <MenuItem label="Anggota" page="/anggota" />
+        <MenuItem label="Kegiatan" page="/kegiatan" />
+        <MenuItem label="Kalender" page="/kalender" />
+        <hr className="my-4 border-black/30" />
+      </div>
+
+      {/* MENU SIDEBAR — SEMUA DEVICE */}
       <MenuItem label="Profil" page="/profile" />
       <MenuItem label="Pengaturan" page="/settings" />
 
-      {/** 🔥 ADMIN BUTTON — HANYA MUNCUL KALAU ROLE ADMIN */}
       {role === "admin" && (
-        <div className="mt-4">
-          <MenuItem label="Panel Admin" page="/admin" />
-        </div>
+        <MenuItem label="Panel Admin" page="/admin" />
       )}
 
+      {/* AUTH BUTTONS */}
       <div className="mt-auto text-black">
         <button
           onClick={() => {

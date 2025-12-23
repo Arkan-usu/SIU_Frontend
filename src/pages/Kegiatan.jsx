@@ -50,6 +50,25 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
   );
 };
 
+// ✅ MODAL KONFIRMASI (Pop up baru)
+const ConfirmModal = ({ isOpen, onClose, onConfirm, kegiatanNama }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center transform animate-in zoom-in-95 duration-200">
+        <h3 className="text-xl font-bold mb-4">Konfirmasi</h3>
+        <p className="text-gray-600 mb-6">
+          Apakah Anda yakin ingin mendaftar pada kegiatan <span className="font-bold">"{kegiatanNama}"</span>?
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 px-4 py-2 bg-gray-200 rounded-xl font-semibold">Batal</button>
+          <button onClick={onConfirm} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-lg shadow-emerald-200">Ya, Daftar</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function Kegiatan({ setKegiatanTerdaftar }) {
   const [ukmList, setUkmList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,20 +76,19 @@ function Kegiatan({ setKegiatanTerdaftar }) {
   const [userRegistrations, setUserRegistrations] = useState([]);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
+  // ✅ State tambahan untuk Konfirmasi
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingReg, setPendingReg] = useState(null);
+  
   const { token } = useContext(UserContext);
 
-  // ✅ FETCH UKM + USER REGISTRATIONS
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // 1. GET UKM (public)
         const ukmResponse = await axios.get('/ukm');
         setUkmList(ukmResponse.data);
-        
-        // 2. GET user registrations (private)
         if (token) {
           try {
             const regResponse = await axios.get('/pendaftar', {
@@ -78,7 +96,6 @@ function Kegiatan({ setKegiatanTerdaftar }) {
             });
             setUserRegistrations(regResponse.data);
           } catch (regErr) {
-            console.log('No registrations yet');
             setUserRegistrations([]);
           }
         }
@@ -88,21 +105,26 @@ function Kegiatan({ setKegiatanTerdaftar }) {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [token]);
 
-  // ✅ DAFTAR KEGIATAN - POST /pendaftar
-  const handleDaftar = async (ukmId, kegiatanId) => {
+  // ✅ Fungsi handle klik tombol awal
+  const handleDaftarClick = (ukmId, kegiatanId, kegiatanNama) => {
     if (!token) {
       setShowLoginModal(true);
       return;
     }
+    setPendingReg({ ukmId, kegiatanId, kegiatanNama });
+    setShowConfirmModal(true);
+  };
+
+  // ✅ Fungsi eksekusi setelah konfirmasi modal
+  const handleDaftar = async () => {
+    const { ukmId, kegiatanId } = pendingReg;
+    setShowConfirmModal(false);
 
     try {
       toast.loading('Mendaftar kegiatan...', { id: 'kegiatan' });
-      
-      // ✅ REAL BACKEND API - POST /pendaftar
       const response = await axios.post('/pendaftar', {
         ukm_id: ukmId,
         kegiatan_id: kegiatanId,
@@ -111,18 +133,14 @@ function Kegiatan({ setKegiatanTerdaftar }) {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Update local state
       setUserRegistrations(prev => [...prev, response.data.registration]);
-      
       toast.success('✅ Berhasil daftar kegiatan! Menunggu konfirmasi admin', { id: 'kegiatan' });
       setKegiatanTerdaftar?.(true);
-      
     } catch (err) {
       toast.error(err.response?.data?.error || 'Gagal mendaftar kegiatan!', { id: 'kegiatan' });
     }
   };
 
-  // ✅ CEK USER REGISTRATION STATUS
   const isUserRegisteredForKegiatan = (ukmId, kegiatanId) => {
     return userRegistrations.some(reg => 
       reg.ukm_id === ukmId && 
@@ -131,28 +149,17 @@ function Kegiatan({ setKegiatanTerdaftar }) {
     );
   };
 
-  // Calculate time status
   const getTimeStatus = (tanggal) => {
     if (!tanggal) return { text: 'Tanggal TBD', color: 'text-gray-400' };
-    
     const eventDate = new Date(tanggal);
     const now = new Date();
     const diffMs = eventDate - now;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) {
-      return { text: '📅 Selesai', color: 'text-gray-400' };
-    } else if (diffDays <= 3) {
-      return { 
-        text: `⚡ ${diffDays === 0 ? 'HARI INI' : diffDays + ' HARI LAGI'}`, 
-        color: 'text-orange-500 font-bold' 
-      };
-    } else {
-      return { text: `${diffDays} HARI LAGI`, color: 'text-green-600' };
-    }
+    if (diffDays < 0) return { text: '📅 Selesai', color: 'text-gray-400' };
+    else if (diffDays <= 3) return { text: `⚡ ${diffDays === 0 ? 'HARI INI' : diffDays + ' HARI LAGI'}`, color: 'text-orange-500 font-bold' };
+    else return { text: `${diffDays} HARI LAGI`, color: 'text-green-600' };
   };
 
-  // Loading & Error
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -166,19 +173,13 @@ function Kegiatan({ setKegiatanTerdaftar }) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <p className="text-red-600 mb-4">{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
-        >
-          Coba Lagi
-        </button>
+        <button onClick={() => window.location.reload()} className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">Coba Lagi</button>
       </div>
     );
   }
 
   return (
     <>
-      {/* ✅ LOGIN MODAL */}
       <LoginModal 
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -186,6 +187,14 @@ function Kegiatan({ setKegiatanTerdaftar }) {
           setShowLoginModal(false);
           window.location.href = '/login';
         }}
+      />
+
+      {/* ✅ RENDER MODAL KONFIRMASI */}
+      <ConfirmModal 
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleDaftar}
+        kegiatanNama={pendingReg?.kegiatanNama}
       />
       
       <Toaster />
@@ -214,17 +223,14 @@ function Kegiatan({ setKegiatanTerdaftar }) {
                   
                   return (
                     <div key={keg.id} className="bg-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all border-2 border-gray-100 hover:border-indigo-200">
-                      {/* TIME BADGE */}
                       <div className={`text-xs px-3 py-1 rounded-full mb-4 inline-block ${timeStatus.color}`}>
                         {timeStatus.text}
                       </div>
                       
-                      {/* KEGIATAN INFO */}
                       <h3 className="text-2xl font-bold text-gray-800 mb-3 line-clamp-2">{keg.nama}</h3>
                       <p className="text-indigo-600 font-semibold mb-2">{keg.tanggal}</p>
                       <p className="text-gray-600 line-clamp-3 mb-6 leading-relaxed">{keg.deskripsi}</p>
 
-                      {/* STATUS & BUTTON */}
                       <div className="space-y-3">
                         <div className={`px-4 py-2 rounded-xl text-sm font-semibold w-fit ${
                           sudahTerdaftar
@@ -235,7 +241,7 @@ function Kegiatan({ setKegiatanTerdaftar }) {
                         </div>
 
                         <button
-                          onClick={() => handleDaftar(ukm.id, keg.id)}
+                          onClick={() => handleDaftarClick(ukm.id, keg.id, keg.nama)}
                           disabled={sudahTerdaftar}
                           className={`w-full py-4 px-6 rounded-2xl font-bold shadow-lg transition-all text-sm transform hover:scale-[1.02]
                             ${sudahTerdaftar
@@ -247,7 +253,7 @@ function Kegiatan({ setKegiatanTerdaftar }) {
                           title={!token ? "Login diperlukan untuk mendaftar" : ""}
                         >
                           {sudahTerdaftar ? '⏳ Menunggu Admin' : 
-                           !token ? '🔐 Login Dulu' : '🎯 DAFTAR KEGIATAN'}
+                            !token ? '🔐 Login Dulu' : '🎯 DAFTAR KEGIATAN'}
                         </button>
                       </div>
                     </div>

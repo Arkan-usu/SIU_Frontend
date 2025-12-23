@@ -2,22 +2,67 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+/* ================= CUSTOM CONFIRM MODAL ================= */
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, statusType }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform animate-in zoom-in-95 duration-200">
+        <h3 className="text-xl font-bold mb-2 text-gray-800">{title}</h3>
+        <p className="text-gray-600 mb-8">{message}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 px-4 py-2 text-white font-semibold rounded-xl shadow-lg transition-all ${
+              statusType === 'accepted' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+            }`}
+          >
+            Ya, Lanjutkan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PendaftarTable = ({ pendaftar, onRefresh }) => {
   const [filterUkm, setFilterUkm] = useState('');
   const [filterType, setFilterType] = useState('');
 
+  // ✅ State Baru untuk Popup
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    id: null,
+    status: '',
+    confirmText: ''
+  });
+
   const token = localStorage.getItem('token');
 
-  // ================= UPDATE STATUS =================
-  const handleUpdateStatus = async (id, status) => {
-    const confirmText =
-      status === 'accepted'
-        ? 'terima'
-        : status === 'rejected'
-        ? 'tolak'
-        : 'kick';
+  // ================= UPDATE STATUS (DIPISAH MENJADI TRIGGER & EXECUTE) =================
+  
+  // 1. Munculkan Popup
+  const triggerUpdateStatus = (id, status) => {
+    const text = status === 'accepted' ? 'terima' : status === 'rejected' ? 'tolak' : 'kick';
+    setModalConfig({
+      isOpen: true,
+      id,
+      status,
+      confirmText: text
+    });
+  };
 
-    if (!window.confirm(`Yakin ingin ${confirmText} pendaftar ini?`)) return;
+  // 2. Jalankan Aksi Setelah Konfirmasi "Ya"
+  const handleExecuteStatus = async () => {
+    const { id, status, confirmText } = modalConfig;
+    setModalConfig({ ...modalConfig, isOpen: false });
 
     try {
       await axios.patch(
@@ -45,6 +90,16 @@ const PendaftarTable = ({ pendaftar, onRefresh }) => {
 
   return (
     <div className="w-full">
+      {/* ✅ RENDER POPUP DI SINI */}
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        onConfirm={handleExecuteStatus}
+        title={`Konfirmasi ${modalConfig.confirmText?.toUpperCase()}`}
+        message={`Apakah Anda yakin ingin ${modalConfig.confirmText} pendaftar ini?`}
+        statusType={modalConfig.status}
+      />
+
       <h3 className="text-3xl font-bold mb-8 text-gray-800">
         📋 Daftar Pendaftar ({filteredPendaftar.length})
       </h3>
@@ -150,17 +205,13 @@ const PendaftarTable = ({ pendaftar, onRefresh }) => {
                     {p.status === 'pending' && (
                       <>
                         <button
-                          onClick={() =>
-                            handleUpdateStatus(p.id, 'accepted')
-                          }
+                          onClick={() => triggerUpdateStatus(p.id, 'accepted')}
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold"
                         >
                           Terima
                         </button>
                         <button
-                          onClick={() =>
-                            handleUpdateStatus(p.id, 'rejected')
-                          }
+                          onClick={() => triggerUpdateStatus(p.id, 'rejected')}
                           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold"
                         >
                           Tolak

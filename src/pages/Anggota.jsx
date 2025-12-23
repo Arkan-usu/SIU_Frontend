@@ -4,7 +4,6 @@ import axios from 'axios';
 import { UserContext } from '../App';
 import toast from 'react-hot-toast';
 
-
 /* ================= LOGIN MODAL ================= */
 const LoginModal = ({ isOpen, onClose, onLogin }) => {
   if (!isOpen) return null;
@@ -41,6 +40,36 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
   );
 };
 
+/* ================= CONFIRMATION MODAL ================= */
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, isDanger }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 transform animate-in zoom-in-95 duration-200">
+        <h3 className="text-xl font-bold mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 bg-gray-200 py-2 rounded-xl font-semibold text-gray-700"
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 py-2 rounded-xl font-semibold text-white shadow-lg ${
+              isDanger ? 'bg-red-600' : 'bg-emerald-600'
+            }`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ================= TOKEN ROLE ================= */
 const getRoleFromToken = (token) => {
   try {
@@ -61,6 +90,14 @@ function Anggota({ setAnggotaTerdaftar }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Pop up states
+  const [confirmData, setConfirmData] = useState({ 
+    isOpen: false, 
+    type: null, 
+    ukmId: null, 
+    ukmNama: '' 
+  });
 
   const role = getRoleFromToken(token);
   const isAdmin = role === 'admin';
@@ -97,12 +134,26 @@ function Anggota({ setAnggotaTerdaftar }) {
     fetchData();
   }, [token]);
 
-  /* ================= ACTION ================= */
-  const handleDaftar = async (ukmId) => {
+  /* ================= ACTIONS ================= */
+  
+  // Handler untuk menampilkan pop up daftar
+  const handleDaftarClick = (ukmId, ukmNama) => {
     if (!token) {
       setShowLoginModal(true);
       return;
     }
+    setConfirmData({ isOpen: true, type: 'daftar', ukmId, ukmNama });
+  };
+
+  // Handler untuk menampilkan pop up batal
+  const handleBatalClick = (ukmId, ukmNama) => {
+    setConfirmData({ isOpen: true, type: 'batal', ukmId, ukmNama });
+  };
+
+  // Eksekusi Daftar (dari pop up)
+  const executeDaftar = async () => {
+    const { ukmId } = confirmData;
+    setConfirmData({ ...confirmData, isOpen: false });
 
     try {
       toast.loading('Mendaftar...', { id: 'daftar' });
@@ -123,8 +174,10 @@ function Anggota({ setAnggotaTerdaftar }) {
     }
   };
 
-  const handleBatal = (ukmId) => {
-    if (!window.confirm('Batalkan pendaftaran ini?')) return;
+  // Eksekusi Batal (dari pop up)
+  const executeBatal = () => {
+    const { ukmId } = confirmData;
+    setConfirmData({ ...confirmData, isOpen: false });
 
     setUserRegistrations((prev) =>
       prev.filter(
@@ -140,7 +193,7 @@ function Anggota({ setAnggotaTerdaftar }) {
       (r) => r.ukm_id === ukmId && r.type === 'anggota'
     );
 
-  /* ================= LOADING (TETAP) ================= */
+  /* ================= LOADING & ERROR ================= */
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -173,6 +226,21 @@ function Anggota({ setAnggotaTerdaftar }) {
         onLogin={() => (window.location.href = '/login')}
       />
 
+      {/* POP UP KONFIRMASI (DAFTAR / BATAL) */}
+      <ConfirmModal
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={confirmData.type === 'daftar' ? executeDaftar : executeBatal}
+        title={confirmData.type === 'daftar' ? 'Konfirmasi Daftar' : 'Konfirmasi Batal'}
+        message={
+          confirmData.type === 'daftar' 
+            ? `Apakah Anda yakin ingin mendaftar ke UKM ${confirmData.ukmNama}?`
+            : `Batalkan pendaftaran dari UKM ${confirmData.ukmNama}?`
+        }
+        confirmText={confirmData.type === 'daftar' ? 'Ya, Daftar' : 'Ya, Batalkan'}
+        isDanger={confirmData.type === 'batal'}
+      />
+
       <div className="container mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold text-center mb-12">
           Daftar Anggota UKM
@@ -183,7 +251,6 @@ function Anggota({ setAnggotaTerdaftar }) {
 
           return (
             <div key={ukm.id} className="mb-16">
-              {/* HEADER UKM */}
               <div className="flex justify-between items-center bg-indigo-50 p-6 rounded-lg mb-6">
                 <h2
                   onClick={() => navigate(`/ukm/${ukm.id}`)}
@@ -195,7 +262,7 @@ function Anggota({ setAnggotaTerdaftar }) {
                 <div className="flex gap-3">
                   {sudahTerdaftar && (
                     <button
-                      onClick={() => handleBatal(ukm.id)}
+                      onClick={() => handleBatalClick(ukm.id, ukm.nama)}
                       disabled={isAdmin}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold
                         ${
@@ -209,7 +276,7 @@ function Anggota({ setAnggotaTerdaftar }) {
                   )}
 
                   <button
-                    onClick={() => handleDaftar(ukm.id)}
+                    onClick={() => handleDaftarClick(ukm.id, ukm.nama)}
                     disabled={sudahTerdaftar || isAdmin}
                     className={`px-6 py-3 rounded-lg text-sm font-semibold
                       ${
@@ -231,7 +298,6 @@ function Anggota({ setAnggotaTerdaftar }) {
                 </div>
               </div>
 
-              {/* ✅ DAFTAR ANGGOTA (INI YANG HILANG TADI) */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {ukm.anggota?.length > 0 ? (
                   ukm.anggota.map((person, i) => (

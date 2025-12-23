@@ -22,14 +22,14 @@ export default function Navbar({ toggleSidebar }) {
 
   return (
     <div className="fixed top-0 left-0 w-full h-20 bg-gray-800 flex items-center px-6 shadow-md z-50 border-b border-gray-700">
-      
+
       {/* LOGO */}
       <h2 className="text-emerald-400 text-4xl font-serif italic ml-6">
         SIU
       </h2>
 
-      {/* MENU */}
-      <div className="flex flex-1 justify-center gap-16">
+      {/* MENU NAVBAR → HANYA PC */}
+      <div className="hidden md:flex flex-1 justify-center gap-16">
         <NavItem label="Home" page="/" />
         <NavItem label="Laporan" page="/laporan" />
         <NavItem label="Anggota" page="/anggota" />
@@ -37,7 +37,7 @@ export default function Navbar({ toggleSidebar }) {
         <NavItem label="Kalender" page="/kalender" />
       </div>
 
-      {/* SIDEBAR BUTTON (tetap tombol) */}
+      {/* SIDEBAR BUTTON → SELALU ADA */}
       <button
         onClick={toggleSidebar}
         className="ml-auto w-10 h-10 rounded-full text-emerald-400 text-2xl
